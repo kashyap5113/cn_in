@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sliding Window Protocol Simulator — Computer Networks</title>
+  <meta name="description" content="Interactive simulator for Go-Back-N and Selective Repeat sliding window protocols. Visualize packet transmission, loss, retransmission, and ACK handling.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ===== HEADER / NAVIGATION ===== -->
+  <header class="site-header" id="top">
+    <div class="container header-inner">
+      <div class="brand">
+        <h1 class="brand-title">Sliding Window Protocol Simulator</h1>
+        <p class="brand-sub">Visualizing Go-Back-N &amp; Selective Repeat</p>
+      </div>
+      <nav class="main-nav" id="mainNav" aria-label="Main navigation">
+        <a href="#simulator" class="nav-link active">Simulator</a>
+        <a href="#protocols" class="nav-link">Protocols</a>
+        <a href="#comparison-section" class="nav-link">Comparison</a>
+        <a href="#about" class="nav-link">About</a>
+      </nav>
+      <div class="header-actions">
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode" title="Toggle theme">
+          <span class="theme-icon" id="themeIcon">☀</span>
+        </button>
+        <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle navigation">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ===== HERO SECTION ===== -->
+    <section class="hero" id="hero">
+      <div class="container hero-inner">
+        <h2 class="hero-title">Understand Reliable Data Transmission</h2>
+        <p class="hero-sub">An interactive simulator for visualizing Sliding Window, Go-Back-N, and Selective Repeat protocols.</p>
+        <div class="hero-actions">
+          <a href="#simulator" class="btn btn-primary">▶ Launch Simulator</a>
+          <a href="#protocols" class="btn btn-outline">Learn Protocols</a>
+        </div>
+        <div class="hero-features">
+          <span class="feature-tag">Go-Back-N</span>
+          <span class="feature-tag">Selective Repeat</span>
+          <span class="feature-tag">Packet Recovery</span>
+          <span class="feature-tag">Performance Analysis</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SIMULATOR SECTION ===== -->
+    <section class="section" id="simulator">
+      <div class="container">
+        <h2 class="section-title">Simulation Dashboard</h2>
+
+        <!-- CONTROLS -->
+        <div class="panel controls-panel" aria-label="Simulation Controls">
+          <div class="controls-top">
+            <div class="proto-selector" id="protoSeg" role="group" aria-label="Protocol Selection">
+              <button data-p="gbn" class="proto-btn active" id="btnGbn">Go-Back-N</button>
+              <button data-p="sr" class="proto-btn" id="btnSr">Selective Repeat</button>
+            </div>
+            <label class="learning-toggle">
+              <input type="checkbox" id="learningMode">
+              <span class="toggle-track"><span class="toggle-thumb"></span></span>
+              <span class="toggle-label">Learning Mode</span>
+            </label>
+          </div>
+
+          <div class="sliders-grid">
+            <div class="slider-group">
+              <label for="sliderN">Packets to Send</label>
+              <div class="slider-row">
+                <input type="range" id="sliderN" min="4" max="24" value="12">
+                <output id="outN" class="slider-val">12</output>
+              </div>
+            </div>
+            <div class="slider-group">
+              <label for="sliderW">Window Size</label>
+              <div class="slider-row">
+                <input type="range" id="sliderW" min="1" max="8" value="4">
+                <output id="outW" class="slider-val">4</output>
+              </div>
+            </div>
+            <div class="slider-group">
+              <label for="sliderLoss">Packet Loss</label>
+              <div class="slider-row">
+                <input type="range" id="sliderLoss" min="0" max="60" value="20">
+                <output id="outLoss" class="slider-val">20%</output>
+              </div>
+            </div>
+            <div class="slider-group">
+              <label for="sliderDelay">One-Way Delay</label>
+              <div class="slider-row">
+                <input type="range" id="sliderDelay" min="0.5" max="3" step="0.1" value="1.5">
+                <output id="outDelay" class="slider-val">1.5s</output>
+              </div>
+            </div>
+            <div class="slider-group">
+              <label for="sliderTimeout">Timeout</label>
+              <div class="slider-row">
+                <input type="range" id="sliderTimeout" min="2" max="10" step="0.5" value="5">
+                <output id="outTimeout" class="slider-val">5.0s</output>
+              </div>
+            </div>
+            <div class="slider-group">
+              <label for="sliderSpeed">Speed</label>
+              <div class="slider-row">
+                <input type="range" id="sliderSpeed" min="0.25" max="4" step="0.25" value="1">
+                <output id="outSpeed" class="slider-val">1×</output>
+              </div>
+            </div>
+          </div>
+
+          <div class="action-btns">
+            <button class="btn btn-primary" id="runBtn" aria-label="Start simulation">▶ Start</button>
+            <button class="btn btn-outline" id="stepBtn" aria-label="Step to next event">⏭ Step</button>
+            <button class="btn btn-outline" id="resetBtn" aria-label="Reset simulation">↻ Reset</button>
+            <button class="btn btn-secondary" id="cmpBtn" aria-label="Compare protocols">Compare Protocols</button>
+          </div>
+        </div>
+
+        <!-- MAIN LAYOUT: VISUALIZATION + SIDEBAR -->
+        <div class="sim-layout">
+          <div class="sim-main">
+            <!-- Sender Strip -->
+            <div class="panel strip-panel">
+              <div class="strip-header">
+                <span class="strip-label">Sender</span>
+                <span class="strip-info mono" id="senderInfo">base = 0, next = 0, window = 4</span>
+              </div>
+              <div class="strip-scroll" id="senderScroll">
+                <div class="strip-track" id="senderTrack"></div>
+              </div>
+            </div>
+
+            <!-- Network Channel -->
+            <div class="panel channel-panel" id="channel" aria-label="Network Channel">
+              <div class="channel-node channel-sender">
+                <span class="node-icon">🖥️</span>
+                <span class="node-label">Sender</span>
+              </div>
+              <div class="channel-node channel-receiver">
+                <span class="node-icon">💻</span>
+                <span class="node-label">Receiver</span>
+              </div>
+              <div class="channel-lane lane-data"></div>
+              <div class="channel-lane lane-ack"></div>
+              <div class="lane-tag lane-tag-data">Data Packets →</div>
+              <div class="lane-tag lane-tag-ack">← Acknowledgements</div>
+              <p class="channel-hint">Click a moving packet to manually drop it</p>
+            </div>
+
+            <!-- Receiver Strip -->
+            <div class="panel strip-panel">
+              <div class="strip-header">
+                <span class="strip-label">Receiver</span>
+                <span class="strip-info mono" id="receiverInfo">expecting #0, window = 1</span>
+              </div>
+              <div class="strip-scroll" id="receiverScroll">
+                <div class="strip-track" id="receiverTrack"></div>
+              </div>
+            </div>
+
+            <!-- Legend -->
+            <div class="legend">
+              <span class="legend-item"><i class="legend-swatch swatch-usable"></i>Can send</span>
+              <span class="legend-item"><i class="legend-swatch swatch-sent"></i>Sent / waiting</span>
+              <span class="legend-item"><i class="legend-swatch swatch-acked"></i>Acknowledged</span>
+              <span class="legend-item"><i class="legend-swatch swatch-buffered"></i>Buffered</span>
+              <span class="legend-item"><i class="legend-swatch swatch-retx"></i>Retransmission</span>
+              <span class="legend-item"><i class="legend-swatch swatch-lost"></i>Lost</span>
+            </div>
+
+            <!-- Step Info (visible in step mode) -->
+            <div class="panel step-info-panel" id="stepInfoPanel" hidden>
+              <h3>Current Event</h3>
+              <p id="stepEventText">—</p>
+            </div>
+
+            <!-- Learning Explanation (visible when learning mode is on) -->
+            <div class="panel learning-panel" id="learningPanel" hidden>
+              <h3>📖 Learning Insight</h3>
+              <p id="learningText"></p>
+            </div>
+          </div>
+
+          <!-- SIDEBAR -->
+          <aside class="sim-sidebar">
+            <!-- Statistics -->
+            <div class="panel stats-panel">
+              <h3 class="panel-title">Live Statistics</h3>
+              <div class="stats-grid">
+                <div class="stat-card">
+                  <span class="stat-label">Delivered</span>
+                  <span class="stat-value mono" id="statDelivered">0 / 12</span>
+                </div>
+                <div class="stat-card">
+                  <span class="stat-label">Time</span>
+                  <span class="stat-value mono" id="statTime">0.0s</span>
+                </div>
+                <div class="stat-card">
+                  <span class="stat-label">Transmissions</span>
+                  <span class="stat-value mono" id="statTx">0</span>
+                </div>
+                <div class="stat-card">
+                  <span class="stat-label">Retransmissions</span>
+                  <span class="stat-value mono" id="statRetx">0</span>
+                </div>
+                <div class="stat-card">
+                  <span class="stat-label">Timeouts</span>
+                  <span class="stat-value mono" id="statTimeouts">0</span>
+                </div>
+                <div class="stat-card">
+                  <span class="stat-label">Efficiency</span>
+                  <span class="stat-value mono" id="statEff">—</span>
+                </div>
+                <div class="stat-card">
+                  <span class="stat-label">Data Lost</span>
+                  <span class="stat-value mono" id="statDataLost">0</span>
+                </div>
+                <div class="stat-card">
+                  <span class="stat-label">ACKs Lost</span>
+                  <span class="stat-value mono" id="statAckLost">0</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Event Log -->
+            <div class="panel log-panel">
+              <div class="log-header">
+                <h3 class="panel-title">Event Log</h3>
+                <button class="btn-small" id="clearLogBtn" aria-label="Clear log">Clear</button>
+              </div>
+              <ul class="event-log" id="eventLog" aria-live="polite"></ul>
+            </div>
+          </aside>
+        </div>
+
+        <!-- Comparison Results -->
+        <div class="panel comparison-panel" id="cmpPanel" hidden>
+          <h3 class="panel-title">Go-Back-N vs Selective Repeat — Performance Comparison</h3>
+          <div id="cmpBody"></div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ===== PROTOCOLS SECTION ===== -->
+    <section class="section section-alt" id="protocols">
+      <div class="container">
+        <h2 class="section-title">Understanding the Protocols</h2>
+
+        <div class="edu-grid">
+          <div class="panel edu-card">
+            <h3>What is Sliding Window Protocol?</h3>
+            <p>The Sliding Window Protocol is a <strong>flow control</strong> and <strong>reliable data transfer</strong> mechanism. The sender maintains a "window" of sequence numbers it is allowed to send without waiting for acknowledgement. As ACKs arrive, the window slides forward, allowing new packets to be transmitted.</p>
+            <ul>
+              <li>Multiple packets can be in transit simultaneously</li>
+              <li>Sequence numbers identify each packet</li>
+              <li>ACKs confirm successful delivery</li>
+              <li>Lost packets are detected via timeouts and retransmitted</li>
+              <li>Window size controls flow and congestion</li>
+            </ul>
+          </div>
+
+          <div class="panel edu-card">
+            <h3>Go-Back-N (GBN)</h3>
+            <p>The sender transmits up to <strong>W</strong> packets. The receiver only accepts the <strong>next expected</strong> packet — anything out of order is discarded.</p>
+            <ul>
+              <li><strong>Receiver window = 1</strong> (no buffering)</li>
+              <li>ACKs are <strong>cumulative</strong>: ACK n means all packets 0…n received</li>
+              <li>Sender keeps <strong>one timer</strong> for the oldest unACKed packet</li>
+              <li>On timeout, sender <strong>retransmits from base</strong> (the entire window)</li>
+              <li>Simpler implementation, wastes bandwidth on loss</li>
+            </ul>
+          </div>
+
+          <div class="panel edu-card">
+            <h3>Selective Repeat (SR)</h3>
+            <p>Both sender and receiver maintain windows of size <strong>W</strong>. The receiver <strong>buffers out-of-order packets</strong> and acknowledges each individually.</p>
+            <ul>
+              <li><strong>Receiver window = W</strong> (buffering enabled)</li>
+              <li>ACKs are <strong>individual</strong> per packet</li>
+              <li>Sender keeps <strong>one timer per packet</strong></li>
+              <li>On timeout, <strong>only the missing packet</strong> is retransmitted</li>
+              <li>More efficient under loss, but more complex</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Protocol Comparison Table -->
+        <div class="panel" id="comparison-section">
+          <h3 class="panel-title">Protocol Comparison</h3>
+          <div class="table-wrap">
+            <table class="comparison-table">
+              <thead>
+                <tr>
+                  <th>Feature</th>
+                  <th>Go-Back-N</th>
+                  <th>Selective Repeat</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>Receiver Window</td><td>1</td><td>W (multiple)</td></tr>
+                <tr><td>ACK Type</td><td>Cumulative</td><td>Individual</td></tr>
+                <tr><td>Out-of-Order Packets</td><td>Discarded</td><td>Buffered</td></tr>
+                <tr><td>Receiver Buffering</td><td>No</td><td>Yes</td></tr>
+                <tr><td>Timer</td><td>Single (oldest unACKed)</td><td>Per-packet</td></tr>
+                <tr><td>Retransmission</td><td>Entire window from base</td><td>Only the missing packet</td></tr>
+                <tr><td>Complexity</td><td>Lower</td><td>Higher</td></tr>
+                <tr><td>Efficiency Under Loss</td><td>Lower</td><td>Higher</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== ABOUT SECTION ===== -->
+    <section class="section" id="about">
+      <div class="container">
+        <h2 class="section-title">About This Project</h2>
+        <div class="about-grid">
+          <div class="panel about-card">
+            <h3>Academic Information</h3>
+            <table class="about-table">
+              <tr><td>Project Title</td><td>Interactive Sliding Window Protocol Simulator</td></tr>
+              <tr><td>Subject</td><td>Computer Networks</td></tr>
+              <tr><td>Project Type</td><td>Semester Project</td></tr>
+              <tr><td>Department</td><td>Computer Science &amp; Engineering</td></tr>
+              <tr><td>College</td><td>[Your College]</td></tr>
+              <tr><td>Academic Year</td><td>2026–27</td></tr>
+            </table>
+          </div>
+          <div class="panel about-card">
+            <h3>Student Details</h3>
+            <table class="about-table">
+              <tr><td>Developed By</td><td>[Your Name]</td></tr>
+              <tr><td>Enrollment No.</td><td>[Your Enrollment Number]</td></tr>
+            </table>
+            <h3 style="margin-top:18px">Topics Covered</h3>
+            <ul>
+              <li>Sliding Window Protocol</li>
+              <li>Flow Control &amp; Reliable Data Transfer</li>
+              <li>Go-Back-N Protocol</li>
+              <li>Selective Repeat Protocol</li>
+              <li>Packet Loss, Timeout, Retransmission</li>
+            </ul>
+          </div>
+          <div class="panel about-card">
+            <h3>Technologies Used</h3>
+            <div class="tech-tags">
+              <span class="tech-tag">HTML5</span>
+              <span class="tech-tag">CSS3</span>
+              <span class="tech-tag">Vanilla JavaScript</span>
+            </div>
+            <p style="margin-top:12px">This is a self-contained frontend application. No frameworks, no build tools, no backend, no database. Open <code>index.html</code> via a local server and it works.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p>Sliding Window Protocol Simulator — Computer Networks Semester Project</p>
+      <p class="footer-sub">Built with HTML5, CSS3, and Vanilla JavaScript</p>
+    </div>
+  </footer>
+
+  <!-- ===== TOAST CONTAINER ===== -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
